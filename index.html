@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Schulmonitor – Vertretungspläne</title>
+  <style>
+    :root { --navy:#112d50; --blue:#1b4978; --gold:#ffcf39; --paper:#fff; --bg:#eaf0f7; --ink:#1d2b3e; }
+    * { box-sizing:border-box; }
+    html,body { height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color:var(--ink); background:var(--bg); }
+    body { display:flex; flex-direction:column; overflow:hidden; }
+    header { flex:0 0 11vh; min-height:68px; display:flex; justify-content:space-between; align-items:center; padding:12px 2vw; color:white; background:var(--navy); gap:15px; }
+    .school-brand {display:flex; align-items:center; gap:1.2vw; min-width:0;}
+    .school-logo {width:clamp(49px,6.8vh,94px);height:clamp(49px,6.8vh,94px);object-fit:contain;background:#fff;border-radius:50%;padding:4px;flex-shrink:0;}
+    .logo-placeholder {width:clamp(49px,6.8vh,94px);height:clamp(49px,6.8vh,94px);border:2px solid #caddf3;border-radius:50%;display:none;align-items:center;justify-content:center;font-size:12px;text-align:center;color:#fff;flex-shrink:0;}
+    .school { font-size:clamp(19px,2vw,33px); font-weight:750; }
+    .subtitle { font-size:clamp(12px,1.1vw,19px); color:#caddf3; margin-top:4px; }
+    .clock { text-align:right; white-space:nowrap; font-size:clamp(19px,2vw,34px); font-weight:700; }
+    .clock small {display:block;font-size:clamp(12px,1vw,18px);font-weight:400;color:#caddf3;margin-top:4px}
+    main { flex:1; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:1.2vw; padding:1.2vw; min-height:0; }
+    .panel { background:var(--paper); border-radius:12px; box-shadow:0 3px 12px #2038551a; display:flex; flex-direction:column; min-width:0; overflow:hidden; }
+    .panel-head { padding:1vw 1.25vw; background:#d9e7f7; border-bottom:2px solid #b6cde5; }
+    .panel:last-child .panel-head { background:#e6ecf4; }
+    .kicker {font-weight:800; color:#194670; font-size:clamp(13px,1.4vw,23px);letter-spacing:.08em}
+    .daydate {font-size:clamp(14px,1.5vw,24px);margin-top:5px;font-weight:600}
+    .plan-area { flex:1; overflow:hidden; min-height:0; position:relative; }
+    .plan-content {width:100%;}
+    table {width:100%; border-collapse:collapse; font-size:clamp(13px,1.30vw,22px);}
+    th { background:#f5f8fc; font-size:.9em; color:#41566b; text-align:left; padding:12px 12px; position:sticky;top:0; }
+    td { padding:13px 12px; border-bottom:1px solid #dce4ee; vertical-align:middle; }
+    td:first-child {font-weight:800; color:#133b61}
+    .pill {display:inline-block; border-radius:6px;padding:5px 8px;background:#e2ecfa; font-weight:700; white-space:nowrap;}
+    .cancel { color:#9b2020;background:#ffe3e3; }
+    .empty { padding:24px; font-size:clamp(14px,1.4vw,22px); }
+    .plan-frame {width:100%;height:100%;border:0;background:white;}
+    .footnote {flex:0 0 auto; background:#f4f7fb; color:#586d81; padding:7px 1.25vw;font-size:clamp(11px,.9vw,16px);border-top:1px solid #e1e8f1;}
+    footer {height:10vh;min-height:58px;max-height:100px; background:var(--gold);display:flex; align-items:center; overflow:hidden; flex:none; border-top:4px solid #e7ad13;}
+    .info-label {position:relative;z-index:2;background:#f7c125;height:100%;display:flex;align-items:center;gap:9px;padding:0 1.4vw; font-size:clamp(15px,1.5vw,25px);font-weight:800;white-space:nowrap;box-shadow:5px 0 13px #93650036}
+    .ticker-window {min-width:0; flex:1; overflow:hidden;}
+    .ticker-text {white-space:nowrap;width:max-content;font-size:clamp(18px,2vw,32px);font-weight:700;animation:marquee 35s linear infinite; padding-left:100%;}
+    @keyframes marquee { to {transform:translateX(-100%)} }
+    @media (prefers-reduced-motion:reduce) { .ticker-text {animation:none;padding-left:16px;} }
+    @media (max-width:700px) { header{min-height:70px} main{gap:8px;padding:8px} .panel-head{padding:10px} th,td{padding:8px 5px} .info-label{padding:0 8px} }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="school-brand">
+      <!-- Original-Schullogo als schullogo.png neben index.html speichern. -->
+      <img class="school-logo" src="schullogo.png" alt="Schullogo Seiler-Gymnasium Schlotheim" onerror="this.style.display='none';document.getElementById('logoFallback').style.display='flex'">
+      <div class="logo-placeholder" id="logoFallback">SEILER<br>GYMNASIUM</div>
+      <div><div class="school" id="schoolName"></div><div class="subtitle">Vertretungsplan · Aktuelle Informationen</div></div>
+    </div>
+    <div class="clock"><span id="time">--:--</span><small id="todayClock"></small></div>
+  </header>
+  <main>
+    <section class="panel">
+      <div class="panel-head"><div class="kicker">HEUTE</div><div class="daydate" id="dateToday"></div></div>
+      <div class="plan-area" id="todayArea"></div>
+      <div class="footnote" id="todayNote"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><div class="kicker">NÄCHSTER UNTERRICHTSTAG</div><div class="daydate" id="dateNext"></div></div>
+      <div class="plan-area" id="nextArea"></div>
+      <div class="footnote" id="nextNote"></div>
+    </section>
+  </main>
+  <footer>
+    <div class="info-label">📢 INFO</div>
+    <div class="ticker-window"><div class="ticker-text" id="tickerText"></div></div>
+  </footer>
+<script>
+  // ================================================================
+  // HIER ANPASSEN – Diese Werte lassen sich auch ohne Fachkenntnisse ändern.
+  // ================================================================
+  const EINSTELLUNGEN = {
+    schulname: 'Seiler-Gymnasium Schlotheim',
+    laufband: 'Willkommen in unserer Schule   ✦   Bitte die aktuellen Vertretungspläne beachten   ✦   Nächste Schulveranstaltung: Termin ergänzen   ✦',
+    // 'muster' zeigt fiktive Beispieldaten. Für die echten Indiware-Dateien
+    // auf 'html' umstellen und die beiden Dateinamen unten eintragen.
+    anzeige: 'muster',
+    heuteDatei: 'plan-heute.html',
+    naechsterTagDatei: 'plan-naechster-tag.html',
+    // Schulfreie Tage (JJJJ-MM-TT) bei Bedarf ergänzen; Wochenenden werden übersprungen.
+    schulfreieTage: [],
+    // Nach 5 Minuten die Seite neu laden, damit neue Dateien sichtbar werden.
+    neuladenMinuten: 5
+  };
+
+  // FIKTIVE MUSTERDATEN: NICHT als echten Vertretungsplan verwenden.
+  const MUSTER_HEUTE = [
+    ['5a','2.','Deutsch','Vertretung'],['6b','3.','Sport','Entfall'],
+    ['7a','4.','Englisch','Raum 204'],['8b','5.','Mathematik','Vertretung'],
+    ['9a','6.','Biologie','Entfall']
+  ];
+  const MUSTER_NAECHSTER = [
+    ['5b','1.','Mathematik','Raum 103'],['6a','2.','Deutsch','Vertretung'],
+    ['8a','4.','Physik','Entfall'],['9c','5.','Englisch','Vertretung'],
+    ['10a','6.','Geschichte','Raum 210']
+  ];
+
+  const datumFormat = new Intl.DateTimeFormat('de-DE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  const kurzFormat = new Intl.DateTimeFormat('de-DE',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
+  const $ = id => document.getElementById(id);
+  const heute = new Date(); heute.setHours(12,0,0,0);
+  const isoLocal = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  function schulTag(d) { return d.getDay()!==0 && d.getDay()!==6 && !EINSTELLUNGEN.schulfreieTage.includes(isoLocal(d)); }
+  function naechsterUnterrichtstag(d) {
+    const n=new Date(d); n.setDate(n.getDate()+1);
+    for(let i=0;i<366;i++){if(schulTag(n))return n;n.setDate(n.getDate()+1);}
+    return n;
+  }
+  function uhr() {
+    const n=new Date(); $('time').textContent=n.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+    $('todayClock').textContent=kurzFormat.format(n);
+    // Datum täglich korrekt aktualisieren: bei Tageswechsel Seite neu laden.
+    if (isoLocal(n)!==isoLocal(heute)) location.reload();
+  }
+  function encode(s){return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');}
+  function zeigeMuster(ziel,zeilen) {
+    const kopf='<table><thead><tr><th>Klasse</th><th>Std.</th><th>Fach</th><th>Änderung</th></tr></thead><tbody>';
+    $(ziel).innerHTML=kopf+zeilen.map(r=>`<tr><td>${encode(r[0])}</td><td>${encode(r[1])}</td><td>${encode(r[2])}</td><td><span class="pill ${r[3]==='Entfall'?'cancel':''}">${encode(r[3])}</span></td></tr>`).join('')+'</tbody></table>';
+  }
+  function zeigeHTML(ziel,datei) {
+    const f=document.createElement('iframe');f.className='plan-frame';f.title='Vertretungsplan';
+    f.src=datei; $(ziel).replaceChildren(f);
+  }
+  function initialisieren() {
+    $('schoolName').textContent=EINSTELLUNGEN.schulname;
+    $('tickerText').textContent=EINSTELLUNGEN.laufband;
+    $('dateToday').textContent=datumFormat.format(heute);
+    $('dateNext').textContent=datumFormat.format(naechsterUnterrichtstag(heute));
+    if(EINSTELLUNGEN.anzeige==='html') {
+      zeigeHTML('todayArea',EINSTELLUNGEN.heuteDatei);
+      zeigeHTML('nextArea',EINSTELLUNGEN.naechsterTagDatei);
+      $('todayNote').textContent='Indiware-Datei: '+EINSTELLUNGEN.heuteDatei;
+      $('nextNote').textContent='Indiware-Datei: '+EINSTELLUNGEN.naechsterTagDatei;
+    } else {
+      zeigeMuster('todayArea',MUSTER_HEUTE);zeigeMuster('nextArea',MUSTER_NAECHSTER);
+      $('todayNote').textContent='DEMONSTRATION – keine echten Plandaten';
+      $('nextNote').textContent='DEMONSTRATION – keine echten Plandaten';
+    }
+    uhr();setInterval(uhr,10000);
+    if(EINSTELLUNGEN.neuladenMinuten>0) setInterval(()=>location.reload(),EINSTELLUNGEN.neuladenMinuten*60000);
+  }
+  initialisieren();
+</script>
+</body>
+</html>
