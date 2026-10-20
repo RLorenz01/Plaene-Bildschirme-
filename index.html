@@ -24,7 +24,16 @@
     .kicker {font-weight:800; color:#194670; font-size:clamp(13px,1.4vw,23px);letter-spacing:.08em}
     .daydate {font-size:clamp(14px,1.5vw,24px);margin-top:5px;font-weight:600}
     .plan-area { flex:1; overflow:hidden; min-height:0; position:relative; }
-    .plan-content {width:100%;}
+    .plan-content {width:100%; will-change:transform;}
+    .scroll-wrap { height:100%; overflow:hidden; position:relative; }
+    .plan-inner { position:relative; width:100%; }
+    .scroll-status { color:#576c80; font-size:clamp(10px,.8vw,14px); margin-left:10px; }
+    tr:nth-child(even) td { background:#f7fafe; }
+    .plan-content td:last-child {overflow-wrap:anywhere;}
+    .notice {padding:13px 18px; color:#29425d; font-size:clamp(12px,1vw,17px); background:#edf4fb;border-top:1px solid #dce4ee;}
+    .error { padding:20px; color:#852525; font-weight:bold; }
+    .plan-meta { color:#526c85; font-size:clamp(12px,1vw,17px); padding:10px 12px; background:#f0f5fb; }
+
     table {width:100%; border-collapse:collapse; font-size:clamp(13px,1.30vw,22px);}
     th { background:#f5f8fc; font-size:.9em; color:#41566b; text-align:left; padding:12px 12px; position:sticky;top:0; }
     td { padding:13px 12px; border-bottom:1px solid #dce4ee; vertical-align:middle; }
@@ -75,16 +84,30 @@
   // ================================================================
   const EINSTELLUNGEN = {
     schulname: 'Seiler-Gymnasium Schlotheim',
-    laufband: 'Willkommen in unserer Schule   ✦   Bitte die aktuellen Vertretungspläne beachten   ✦   Nächste Schulveranstaltung: Termin ergänzen   ✦',
-    // 'muster' zeigt fiktive Beispieldaten. Für die echten Indiware-Dateien
-    // auf 'html' umstellen und die beiden Dateinamen unten eintragen.
-    anzeige: 'html',
-    heuteDatei: 'plan-heute.html',
-    naechsterTagDatei: 'plan-naechster-tag.html',
-    // Schulfreie Tage (JJJJ-MM-TT) bei Bedarf ergänzen; Wochenenden werden übersprungen.
-    schulfreieTage: [],
+    laufband: 'Willkommen am Seiler-Gymnasium Schlotheim!', // Ersatztext, falls mitteilungen.txt fehlt
+    // Automatisch die Indiware-Dateien mit Tagesdatum laden.
+    // Fehlen die Dateien, erscheint eine klare Meldung statt erfundener Pläne.
+    anzeige: 'indiware',
+    dateinameAnfang: 'Vertretungsplan Schüler',
+    // Ferien Thüringen 2026/27 nach KMK, jeweils inklusive Start- und Endtag.
+    ferien: [
+      ['2026-10-12','2026-10-24'], // Herbst
+      ['2026-12-23','2027-01-02'], // Weihnachten
+      ['2027-02-01','2027-02-06'], // Winter
+      ['2027-03-22','2027-04-03'], // Ostern
+      ['2027-05-07','2027-05-07'], // schulfreier Tag nach Himmelfahrt
+      ['2027-07-10','2027-08-20']  // Sommer
+    ],
+    // Gesetzliche Feiertage an Schultagen, die nicht schon Ferien sind.
+    feiertage: ['2026-12-25','2027-01-01','2027-03-26','2027-03-29',
+                '2027-05-06','2027-05-17'],
+    // Bewegliche Ferientage des Seiler-Gymnasiums Schlotheim.
+    schulfreieTage: ['2026-11-30','2027-02-08'],
     // Nach 5 Minuten die Seite neu laden, damit neue Dateien sichtbar werden.
-    neuladenMinuten: 5
+    neuladenMinuten: 5,
+    scrollPixelProSekunde: 24,
+    pauseObenSekunden: 5,
+    pauseUntenSekunden: 5
   };
 
   // FIKTIVE MUSTERDATEN: NICHT als echten Vertretungsplan verwenden.
@@ -104,7 +127,19 @@
   const $ = id => document.getElementById(id);
   const heute = new Date(); heute.setHours(12,0,0,0);
   const isoLocal = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  function schulTag(d) { return d.getDay()!==0 && d.getDay()!==6 && !EINSTELLUNGEN.schulfreieTage.includes(isoLocal(d)); }
+  function schulTag(d) {
+    const tag=isoLocal(d);
+    return d.getDay()!==0 && d.getDay()!==6
+      && !EINSTELLUNGEN.ferien.some(([von,bis])=>von<=tag && tag<=bis)
+      && !EINSTELLUNGEN.feiertage.includes(tag)
+      && !EINSTELLUNGEN.schulfreieTage.includes(tag);
+  }
+  function unterrichtstagAb(d) {
+    const n=new Date(d);
+    for(let i=0;i<366;i++){if(schulTag(n))return n;n.setDate(n.getDate()+1);}
+    return n;
+  }
+  function dateinameFuer(d) { return EINSTELLUNGEN.dateinameAnfang+isoLocal(d)+'.html'; }
   function naechsterUnterrichtstag(d) {
     const n=new Date(d); n.setDate(n.getDate()+1);
     for(let i=0;i<366;i++){if(schulTag(n))return n;n.setDate(n.getDate()+1);}
@@ -117,24 +152,118 @@
     if (isoLocal(n)!==isoLocal(heute)) location.reload();
   }
   function encode(s){return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');}
-  function zeigeMuster(ziel,zeilen) {
-    const kopf='<table><thead><tr><th>Klasse</th><th>Std.</th><th>Fach</th><th>Änderung</th></tr></thead><tbody>';
-    $(ziel).innerHTML=kopf+zeilen.map(r=>`<tr><td>${encode(r[0])}</td><td>${encode(r[1])}</td><td>${encode(r[2])}</td><td><span class="pill ${r[3]==='Entfall'?'cancel':''}">${encode(r[3])}</span></td></tr>`).join('')+'</tbody></table>';
+  function scrollendeTabelle(ziel, inhalt) {
+    const area=$(ziel);area.replaceChildren();
+    const wrap=document.createElement('div');wrap.className='scroll-wrap';
+    const inner=document.createElement('div');inner.className='plan-content';
+    inner.append(inhalt);wrap.append(inner);area.append(wrap);
+    let start=performance.now(), lastMaximum=-1;
+    // Bei einem langen Plan wird die Tabelle langsam nach unten und wieder nach oben bewegt.
+    // Sind alle Einträge sichtbar, bleibt die Tabelle stehen.
+    function frame(time) {
+      if(!wrap.isConnected)return;
+      const max=Math.max(0,inner.scrollHeight-wrap.clientHeight);
+      if(max!==lastMaximum){start=time;lastMaximum=max;}
+      if(max>2){
+        const velocity=Math.max(5,Number(EINSTELLUNGEN.scrollPixelProSekunde)||24);
+        const topPause=(Number(EINSTELLUNGEN.pauseObenSekunden)||5)*1000;
+        const bottomPause=(Number(EINSTELLUNGEN.pauseUntenSekunden)||5)*1000;
+        const travel=max/velocity*1000;
+        const cycle=topPause+travel+bottomPause+travel;
+        let t=(time-start)%cycle,pos=0;
+        if(t<topPause) pos=0;
+        else if(t<topPause+travel) pos=(t-topPause)/1000*velocity;
+        else if(t<topPause+travel+bottomPause) pos=max;
+        else pos=max-(t-topPause-travel-bottomPause)/1000*velocity;
+        inner.style.transform='translateY(-'+Math.max(0,Math.min(max,pos))+'px)';
+      }else inner.style.transform='';
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
   }
-  function zeigeHTML(ziel,datei) {
-    const f=document.createElement('iframe');f.className='plan-frame';f.title='Vertretungsplan';
-    f.src=datei; $(ziel).replaceChildren(f);
+  function zeigeMuster(ziel,zeilen) {
+    const container=document.createElement('div');
+    const table=document.createElement('table');
+    table.innerHTML='<thead><tr><th>Klasse</th><th>Std.</th><th>Fach</th><th>Änderung</th></tr></thead><tbody>'+zeilen.map(r=>`<tr><td>${encode(r[0])}</td><td>${encode(r[1])}</td><td>${encode(r[2])}</td><td><span class="pill ${r[3]==='Entfall'?'cancel':''}">${encode(r[3])}</span></td></tr>`).join('')+'</tbody>';
+    container.append(table);scrollendeTabelle(ziel,container);
+  }
+  async function zeigeIndiware(ziel,datei,datum,notiz) {
+    try {
+      // Indiware 7 kennzeichnet diese Exporte als ISO-8859-1.
+      // Aus den Original-HTML-Dateien wird nur die Unterrichtstabelle übernommen.
+      const antwort=await fetch(encodeURI(datei)+'?stand='+Date.now(),{cache:'no-store'});
+      if(!antwort.ok)throw new Error('Datei nicht gefunden (HTTP '+antwort.status+')');
+      const bytes=await antwort.arrayBuffer();
+      const html=new TextDecoder('windows-1252').decode(bytes);
+      const doc=new DOMParser().parseFromString(html,'text/html');
+      const table=doc.querySelector('table.tablekopf');
+      if(!table)throw new Error('Keine Indiware-Unterrichtstabelle gefunden');
+      const titel=doc.querySelector('.vpfuerdatum')?.textContent.trim() || '';
+      const expected=datumFormat.format(datum).toLocaleLowerCase('de-DE');
+      if(titel && !titel.toLocaleLowerCase('de-DE').includes(expected)) {
+        throw new Error('Falscher Tag in Datei: '+titel+' (erwartet '+datumFormat.format(datum)+')');
+      }
+      const rows=Array.from(table.querySelectorAll('tr'));
+      const inhalt=document.createElement('div');
+      const parsed=document.createElement('table');
+      const headers=['Klasse','Std.','Fach','Lehrkraft','Raum','Info'];
+      const thead=document.createElement('thead'), trh=document.createElement('tr');
+      headers.forEach(x=>{const th=document.createElement('th');th.textContent=x;trh.append(th)});
+      thead.append(trh);parsed.append(thead);
+      const tbody=document.createElement('tbody');
+      rows.slice(1).forEach(r=>{
+        const cells=Array.from(r.querySelectorAll('td'));
+        if(!cells.length)return;
+        const tr=document.createElement('tr');
+        for(let i=0;i<headers.length;i++){
+          const td=document.createElement('td');td.textContent=(cells[i]?.textContent||'').trim();
+          if(i===5&&/fällt aus/i.test(td.textContent))td.className='cancel';
+          tr.append(td);
+        }
+        tbody.append(tr);
+      });
+      parsed.append(tbody);inhalt.append(parsed);
+      // Zusätzliche Informationen sichtbar, keine Abwesenheitslisten anzeigen.
+      const extra=Array.from(doc.querySelectorAll('.ueberschrift')).find(e=>/Zusätzliche Informationen/i.test(e.textContent));
+      if(extra){
+        const t=extra.nextElementSibling?.tagName==='TABLE'?extra.nextElementSibling:extra.parentElement?.querySelector('table:last-of-type');
+        const notes=t?Array.from(t.querySelectorAll('td')).map(x=>x.textContent.trim()).filter(Boolean):[];
+        if(notes.length){const note=document.createElement('div');note.className='notice';note.textContent='Zusätzliche Informationen: '+notes.join(' · ');inhalt.append(note);}
+      }
+      scrollendeTabelle(ziel,inhalt);
+      const stand=doc.querySelector('.vpdatum')?.textContent.trim()||'ohne Zeitangabe';
+      $(notiz).textContent='Planstand: '+stand+' · '+tbody.children.length+' Änderungen';
+    } catch(e) {
+      $(ziel).innerHTML='<div class="error">Plan nicht verfügbar: '+encode(e.message)+'</div>';
+      $(notiz).textContent='Bitte Dateiname, Datum und Veröffentlichung prüfen';
+    }
+  }
+  // Mitteilungen als einfache Textdatei laden, ganz ohne Bearbeitung des HTML-Codes.
+  // Pro Zeile eine Mitteilung; leere Zeilen werden übersprungen.
+  async function mitteilungenLaden() {
+    try {
+      const antwort = await fetch('mitteilungen.txt?zeit='+Date.now(), {cache:'no-store'});
+      if (!antwort.ok) throw new Error('Datei nicht erreichbar');
+      const inhalt = await antwort.text();
+      const zeilen = inhalt.split(/\r?\n/).map(z => z.trim()).filter(Boolean);
+      $('tickerText').textContent = zeilen.length ? zeilen.join('     ✦     ') + '     ✦     ' : 'Zurzeit keine zusätzlichen Mitteilungen';
+    } catch (fehler) {
+      $('tickerText').textContent = EINSTELLUNGEN.laufband;
+      console.warn('Mitteilungen konnten nicht geladen werden:', fehler);
+    }
   }
   function initialisieren() {
     $('schoolName').textContent=EINSTELLUNGEN.schulname;
     $('tickerText').textContent=EINSTELLUNGEN.laufband;
-    $('dateToday').textContent=datumFormat.format(heute);
-    $('dateNext').textContent=datumFormat.format(naechsterUnterrichtstag(heute));
-    if(EINSTELLUNGEN.anzeige==='html') {
-      zeigeHTML('todayArea',EINSTELLUNGEN.heuteDatei);
-      zeigeHTML('nextArea',EINSTELLUNGEN.naechsterTagDatei);
-      $('todayNote').textContent='Indiware-Datei: '+EINSTELLUNGEN.heuteDatei;
-      $('nextNote').textContent='Indiware-Datei: '+EINSTELLUNGEN.naechsterTagDatei;
+    mitteilungenLaden();
+    const erster=unterrichtstagAb(heute);
+    $('dateToday').textContent=datumFormat.format(erster);
+    $('dateToday').previousElementSibling.textContent=isoLocal(erster)===isoLocal(heute)?'HEUTE':'NÄCHSTER UNTERRICHTSTAG';
+    const next=naechsterUnterrichtstag(erster);
+    $('dateNext').textContent=datumFormat.format(next);
+    if(EINSTELLUNGEN.anzeige==='indiware') {
+      zeigeIndiware('todayArea',dateinameFuer(erster),erster,'todayNote');
+      zeigeIndiware('nextArea',dateinameFuer(next),next,'nextNote');
     } else {
       zeigeMuster('todayArea',MUSTER_HEUTE);zeigeMuster('nextArea',MUSTER_NAECHSTER);
       $('todayNote').textContent='DEMONSTRATION – keine echten Plandaten';
