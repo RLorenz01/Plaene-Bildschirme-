@@ -9,20 +9,20 @@
     * { box-sizing:border-box; }
     html,body { height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color:var(--ink); background:var(--bg); }
     body { display:flex; flex-direction:column; overflow:hidden; }
-    header { flex:0 0 11vh; min-height:68px; display:flex; justify-content:space-between; align-items:center; padding:12px 2vw; color:white; background:var(--navy); gap:15px; }
-    .school-brand {display:flex; align-items:center; gap:1.2vw; min-width:0;}
-    .school-logo {width:clamp(49px,6.8vh,94px);height:clamp(49px,6.8vh,94px);object-fit:contain;background:#fff;border-radius:50%;padding:4px;flex-shrink:0;}
-    .logo-placeholder {width:clamp(49px,6.8vh,94px);height:clamp(49px,6.8vh,94px);border:2px solid #caddf3;border-radius:50%;display:none;align-items:center;justify-content:center;font-size:12px;text-align:center;color:#fff;flex-shrink:0;}
-    .school { font-size:clamp(19px,2vw,33px); font-weight:750; }
-    .subtitle { font-size:clamp(12px,1.1vw,19px); color:#caddf3; margin-top:4px; }
-    .clock { text-align:right; white-space:nowrap; font-size:clamp(19px,2vw,34px); font-weight:700; }
-    .clock small {display:block;font-size:clamp(12px,1vw,18px);font-weight:400;color:#caddf3;margin-top:4px}
-    main { flex:1; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:1.2vw; padding:1.2vw; min-height:0; }
+    header { flex:0 0 7.5vh; min-height:54px; display:flex; justify-content:space-between; align-items:center; padding:6px 1.4vw; color:white; background:var(--navy); gap:10px; }
+    .school-brand {display:flex; align-items:center; gap:.8vw; min-width:0;}
+    .school-logo {width:clamp(38px,5.5vh,66px);height:clamp(38px,5.5vh,66px);object-fit:contain;background:#fff;border-radius:50%;padding:2px;flex-shrink:0;}
+    .logo-placeholder {width:clamp(38px,5.5vh,66px);height:clamp(38px,5.5vh,66px);border:2px solid #caddf3;border-radius:50%;display:none;align-items:center;justify-content:center;font-size:12px;text-align:center;color:#fff;flex-shrink:0;}
+    .school { font-size:clamp(17px,1.65vw,27px); font-weight:750; }
+    .subtitle { font-size:clamp(10px,.85vw,15px); color:#caddf3; margin-top:2px; }
+    .clock { text-align:right; white-space:nowrap; font-size:clamp(17px,1.6vw,27px); font-weight:700; }
+    .clock small {display:block;font-size:clamp(10px,.85vw,15px);font-weight:400;color:#caddf3;margin-top:2px}
+    main { flex:1; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:.7vw; padding:.7vw; min-height:0; }
     .panel { background:var(--paper); border-radius:12px; box-shadow:0 3px 12px #2038551a; display:flex; flex-direction:column; min-width:0; overflow:hidden; }
-    .panel-head { padding:1vw 1.25vw; background:#d9e7f7; border-bottom:2px solid #b6cde5; }
+    .panel-head { padding:.45vw .85vw; background:#d9e7f7; border-bottom:2px solid #b6cde5; }
     .panel:last-child .panel-head { background:#e6ecf4; }
-    .kicker {font-weight:800; color:#194670; font-size:clamp(13px,1.4vw,23px);letter-spacing:.08em}
-    .daydate {font-size:clamp(14px,1.5vw,24px);margin-top:5px;font-weight:600}
+    .kicker {font-weight:800; color:#194670; font-size:clamp(12px,1.1vw,19px);letter-spacing:.08em}
+    .daydate {font-size:clamp(13px,1.2vw,20px);margin-top:2px;font-weight:600}
     .plan-area { flex:1; overflow:hidden; min-height:0; position:relative; }
     .plan-content {width:100%; will-change:transform;}
     .scroll-wrap { height:100%; overflow:hidden; position:relative; }
@@ -32,24 +32,31 @@
     .plan-content td:last-child {overflow-wrap:anywhere;}
     .notice {padding:13px 18px; color:#29425d; font-size:clamp(12px,1vw,17px); background:#edf4fb;border-top:1px solid #dce4ee;}
     .error { padding:20px; color:#852525; font-weight:bold; }
-    .plan-meta { color:#526c85; font-size:clamp(12px,1vw,17px); padding:10px 12px; background:#f0f5fb; }
+    .status-card { display:flex; height:100%; min-height:180px; flex-direction:column; justify-content:center; align-items:center; gap:16px; padding:4vw 2vw; text-align:center; }
+    .status-card .status-symbol { font-size:clamp(38px,4vw,68px); line-height:1; }
+    .status-card h2 { margin:0; font-size:clamp(22px,2vw,36px); line-height:1.2; }
+    .status-card p { margin:0; font-size:clamp(16px,1.3vw,23px); line-height:1.4; max-width:35ch; }
+    .status-future { color:#274d77; background:#eef5fc; }
+    .status-today { color:#8c2727; background:#fff0ed; border:4px solid #df6b62; }
+    .status-error { color:#8c571e; background:#fff8e6; border:4px solid #e5b44a; }
+    .plan-meta { color:#526c85; font-size:clamp(12px,1vw,17px); padding:5px 9px; background:#f0f5fb; }
 
-    table {width:100%; border-collapse:collapse; font-size:clamp(13px,1.30vw,22px);}
-    th { background:#f5f8fc; font-size:.9em; color:#41566b; text-align:left; padding:12px 12px; position:sticky;top:0; }
-    td { padding:13px 12px; border-bottom:1px solid #dce4ee; vertical-align:middle; }
+    table {width:100%; border-collapse:collapse; font-size:clamp(13px,1.16vw,20px);}
+    th { background:#f5f8fc; font-size:.9em; color:#41566b; text-align:left; padding:7px 8px; position:sticky;top:0; }
+    td { padding:8px 8px; border-bottom:1px solid #dce4ee; vertical-align:middle; }
     td:first-child {font-weight:800; color:#133b61}
     .pill {display:inline-block; border-radius:6px;padding:5px 8px;background:#e2ecfa; font-weight:700; white-space:nowrap;}
     .cancel { color:#9b2020;background:#ffe3e3; }
     .empty { padding:24px; font-size:clamp(14px,1.4vw,22px); }
     .plan-frame {width:100%;height:100%;border:0;background:white;}
-    .footnote {flex:0 0 auto; background:#f4f7fb; color:#586d81; padding:7px 1.25vw;font-size:clamp(11px,.9vw,16px);border-top:1px solid #e1e8f1;}
-    footer {height:10vh;min-height:58px;max-height:100px; background:var(--gold);display:flex; align-items:center; overflow:hidden; flex:none; border-top:4px solid #e7ad13;}
-    .info-label {position:relative;z-index:2;background:#f7c125;height:100%;display:flex;align-items:center;gap:9px;padding:0 1.4vw; font-size:clamp(15px,1.5vw,25px);font-weight:800;white-space:nowrap;box-shadow:5px 0 13px #93650036}
+    .footnote {flex:0 0 auto; background:#f4f7fb; color:#586d81; padding:4px .85vw;font-size:clamp(11px,.9vw,16px);border-top:1px solid #e1e8f1;}
+    footer {height:7.5vh;min-height:48px;max-height:76px; background:var(--gold);display:flex; align-items:center; overflow:hidden; flex:none; border-top:4px solid #e7ad13;}
+    .info-label {position:relative;z-index:2;background:#f7c125;height:100%;display:flex;align-items:center;gap:9px;padding:0 1.4vw; font-size:clamp(14px,1.25vw,21px);font-weight:800;white-space:nowrap;box-shadow:5px 0 13px #93650036}
     .ticker-window {min-width:0; flex:1; overflow:hidden;}
-    .ticker-text {white-space:nowrap;width:max-content;font-size:clamp(18px,2vw,32px);font-weight:700;animation:marquee 35s linear infinite; padding-left:100%;}
+    .ticker-text {white-space:nowrap;width:max-content;font-size:clamp(16px,1.6vw,27px);font-weight:700;animation:marquee 35s linear infinite; padding-left:100%;}
     @keyframes marquee { to {transform:translateX(-100%)} }
     @media (prefers-reduced-motion:reduce) { .ticker-text {animation:none;padding-left:16px;} }
-    @media (max-width:700px) { header{min-height:70px} main{gap:8px;padding:8px} .panel-head{padding:10px} th,td{padding:8px 5px} .info-label{padding:0 8px} }
+    @media (max-width:700px) { header{min-height:54px} main{gap:8px;padding:8px} .panel-head{padding:6px} th,td{padding:6px 4px} .info-label{padding:0 8px} }
   </style>
 </head>
 <body>
@@ -187,12 +194,27 @@
     table.innerHTML='<thead><tr><th>Klasse</th><th>Std.</th><th>Fach</th><th>Änderung</th></tr></thead><tbody>'+zeilen.map(r=>`<tr><td>${encode(r[0])}</td><td>${encode(r[1])}</td><td>${encode(r[2])}</td><td><span class="pill ${r[3]==='Entfall'?'cancel':''}">${encode(r[3])}</span></td></tr>`).join('')+'</tbody>';
     container.append(table);scrollendeTabelle(ziel,container);
   }
-  async function zeigeIndiware(ziel,datei,datum,notiz) {
+  function zeigeFehlendenPlan(ziel, notiz, modus, detail='') {
+    const area=$(ziel);
+    area.replaceChildren();
+    const card=document.createElement('div');
+    card.className='status-card '+(modus==='zukunft'?'status-future':modus==='heute'?'status-today':'status-error');
+    const icon=document.createElement('div');icon.className='status-symbol';
+    icon.textContent=modus==='zukunft'?'◷':modus==='heute'?'!':'⚠';
+    const title=document.createElement('h2');
+    title.textContent=modus==='zukunft'?'Noch kein Vertretungsplan veröffentlicht':modus==='heute'?'Aktueller Vertretungsplan fehlt':'Vertretungsplan derzeit nicht lesbar';
+    const message=document.createElement('p');
+    message.textContent=modus==='zukunft'?'Für diesen Tag liegt noch kein veröffentlichter Vertretungsplan vor.':modus==='heute'?'Für heute ist kein aktueller Vertretungsplan verfügbar. Bitte im Sekretariat informieren.':'Die Plandatei konnte nicht korrekt verarbeitet werden. Bitte die Veröffentlichung prüfen.';
+    card.append(icon,title,message);area.append(card);
+    $(notiz).textContent=modus==='zukunft'?'Noch keine Veröffentlichung für diesen Unterrichtstag':modus==='heute'?'WICHTIG: Heutiger Plan fehlt':'Technischer Fehler beim Laden des Plans'+(detail?' ('+detail+')':'');
+  }
+  async function zeigeIndiware(ziel,datei,datum,notiz,modus) {
     try {
       // Indiware 7 kennzeichnet diese Exporte als ISO-8859-1.
       // Aus den Original-HTML-Dateien wird nur die Unterrichtstabelle übernommen.
       const antwort=await fetch(encodeURI(datei)+'?stand='+Date.now(),{cache:'no-store'});
-      if(!antwort.ok)throw new Error('Datei nicht gefunden (HTTP '+antwort.status+')');
+      if(antwort.status===404){zeigeFehlendenPlan(ziel,notiz,modus);return;}
+      if(!antwort.ok)throw new Error('Serverantwort HTTP '+antwort.status);
       const bytes=await antwort.arrayBuffer();
       const html=new TextDecoder('windows-1252').decode(bytes);
       const doc=new DOMParser().parseFromString(html,'text/html');
@@ -234,8 +256,8 @@
       const stand=doc.querySelector('.vpdatum')?.textContent.trim()||'ohne Zeitangabe';
       $(notiz).textContent='Planstand: '+stand+' · '+tbody.children.length+' Änderungen';
     } catch(e) {
-      $(ziel).innerHTML='<div class="error">Plan nicht verfügbar: '+encode(e.message)+'</div>';
-      $(notiz).textContent='Bitte Dateiname, Datum und Veröffentlichung prüfen';
+      console.warn('Indiware-Plan konnte nicht geladen werden:',datei,e);
+      zeigeFehlendenPlan(ziel,notiz,'fehler',e.message);
     }
   }
   // Mitteilungen als einfache Textdatei laden, ganz ohne Bearbeitung des HTML-Codes.
@@ -262,8 +284,9 @@
     const next=naechsterUnterrichtstag(erster);
     $('dateNext').textContent=datumFormat.format(next);
     if(EINSTELLUNGEN.anzeige==='indiware') {
-      zeigeIndiware('todayArea',dateinameFuer(erster),erster,'todayNote');
-      zeigeIndiware('nextArea',dateinameFuer(next),next,'nextNote');
+      const ersterIstHeute=isoLocal(erster)===isoLocal(heute);
+      zeigeIndiware('todayArea',dateinameFuer(erster),erster,'todayNote',ersterIstHeute?'heute':'zukunft');
+      zeigeIndiware('nextArea',dateinameFuer(next),next,'nextNote','zukunft');
     } else {
       zeigeMuster('todayArea',MUSTER_HEUTE);zeigeMuster('nextArea',MUSTER_NAECHSTER);
       $('todayNote').textContent='DEMONSTRATION – keine echten Plandaten';
