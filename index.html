@@ -19,6 +19,11 @@
     .clock small {display:block;font-size:clamp(10px,.85vw,15px);font-weight:400;color:#caddf3;margin-top:2px}
     main { flex:1; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:.7vw; padding:.7vw; min-height:0; }
     .panel { background:var(--paper); border-radius:12px; box-shadow:0 3px 12px #2038551a; display:flex; flex-direction:column; min-width:0; overflow:hidden; }
+    .panel-head { position:relative; }
+    .new-badge { display:none; position:absolute; right:12px; top:50%; transform:translateY(-50%); background:#b8202b; color:#fff; font-size:clamp(13px,1.1vw,19px); font-weight:900; padding:6px 12px; border-radius:7px; letter-spacing:.06em; box-shadow:0 1px 5px #0003; }
+    .new-badge.visible {display:inline-block;}
+    .ticker-update {display:none; flex:0 0 auto; margin-left:10px; background:#aa1724; color:white; border-radius:6px; padding:7px 12px; font-size:clamp(12px,1.1vw,19px); font-weight:bold; white-space:nowrap; }
+    .ticker-update.visible {display:block;}
     .panel-head { padding:.45vw .85vw; background:#d9e7f7; border-bottom:2px solid #b6cde5; }
     .panel:last-child .panel-head { background:#e6ecf4; }
     .kicker {font-weight:800; color:#194670; font-size:clamp(12px,1.1vw,19px);letter-spacing:.08em}
@@ -71,18 +76,18 @@
   </header>
   <main>
     <section class="panel">
-      <div class="panel-head"><div class="kicker">HEUTE</div><div class="daydate" id="dateToday"></div></div>
+      <div class="panel-head"><div class="kicker">HEUTE</div><div class="daydate" id="dateToday"></div><span class="new-badge" id="todayNew" aria-label="Plan aktualisiert">NEU</span></div>
       <div class="plan-area" id="todayArea"></div>
       <div class="footnote" id="todayNote"></div>
     </section>
     <section class="panel">
-      <div class="panel-head"><div class="kicker">NÄCHSTER UNTERRICHTSTAG</div><div class="daydate" id="dateNext"></div></div>
+      <div class="panel-head"><div class="kicker">NÄCHSTER UNTERRICHTSTAG</div><div class="daydate" id="dateNext"></div><span class="new-badge" id="nextNew" aria-label="Plan aktualisiert">NEU</span></div>
       <div class="plan-area" id="nextArea"></div>
       <div class="footnote" id="nextNote"></div>
     </section>
   </main>
   <footer>
-    <div class="info-label">📢 INFO</div>
+    <div class="info-label">📢 INFO</div><div class="ticker-update" id="tickerUpdate"></div>
     <div class="ticker-window"><div class="ticker-text" id="tickerText"></div></div>
   </footer>
 <script>
@@ -114,7 +119,9 @@
     neuladenMinuten: 5,
     scrollPixelProSekunde: 24,
     pauseObenSekunden: 5,
-    pauseUntenSekunden: 5
+    pauseUntenSekunden: 5,
+    // Kennzeichnung bleibt bis Mitternacht des Entdeckungstages sichtbar.
+    neuHinweisBisTagesende: true
   };
 
   // FIKTIVE MUSTERDATEN: NICHT als echten Vertretungsplan verwenden.
@@ -208,12 +215,56 @@
     card.append(icon,title,message);area.append(card);
     $(notiz).textContent=modus==='zukunft'?'Noch keine Veröffentlichung für diesen Unterrichtstag':modus==='heute'?'WICHTIG: Heutiger Plan fehlt':'Technischer Fehler beim Laden des Plans'+(detail?' ('+detail+')':'');
   }
+  // Versionserkennung im Browser des jeweiligen Smart-TVs.
+  // Es wird nur ein NEU-Hinweis ausgelöst, wenn dieses Gerät für dasselbe Datum
+  // bereits eine ANDERE gültige Plandatei gesehen hat. Erstveröffentlichungen bleiben unmarkiert.
+  const planVersionen = new Map();
+  function gespeicherterStand(iso) {
+    try { return JSON.parse(localStorage.getItem('seiler-plan-v2-'+iso) || 'null'); }
+    catch(e) { return planVersionen.get(iso) || null; }
+  }
+  function standSpeichern(iso, wert) {
+    planVersionen.set(iso,wert);
+    try { localStorage.setItem('seiler-plan-v2-'+iso,JSON.stringify(wert)); } catch(e) {}
+  }
+  function textFingerabdruck(text) {
+    // Stabiler schneller Prüfsummenvergleich der tatsächlich veröffentlichten Datei.
+    let h=2166136261;
+    for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}
+    return String(h>>>0)+':'+text.length;
+  }
+  function aktualisierungErkennen(datum, neuerWert) {
+    const iso=isoLocal(datum);
+    const vorher=gespeicherterStand(iso);
+    const laufenderTag=isoLocal(new Date());
+    const marker = (vorher?.markiertAm===laufenderTag) ? laufenderTag : null;
+    let markiertAm=marker;
+    if(vorher && vorher.version!=='fehlt' && vorher.version!==neuerWert && neuerWert!=='fehlt') {
+      markiertAm=laufenderTag;
+    }
+    standSpeichern(iso,{version:neuerWert,markiertAm});
+    aktualisierungsanzeigen();
+  }
+  function aktualisierungsanzeigen() {
+    const heuteIso=isoLocal(new Date());
+    const markiert=[];
+    for(const [badgeId,tagId] of [['todayNew','dateToday'],['nextNew','dateNext']]) {
+      const datum=$(tagId).dataset.iso;
+      const zustand=datum ? gespeicherterStand(datum) : null;
+      const aktiv=!!zustand && zustand.markiertAm===heuteIso && zustand.version!=='fehlt';
+      $(badgeId).classList.toggle('visible',aktiv);
+      if(aktiv)markiert.push(badgeId==='todayNew'?'heute':'nächsten Unterrichtstag');
+    }
+    const el=$('tickerUpdate');
+    el.classList.toggle('visible',markiert.length>0);
+    el.textContent=markiert.length ? 'ACHTUNG: Neuer Vertretungsplan für '+markiert.join(' und ')+'!' : '';
+  }
   async function zeigeIndiware(ziel,datei,datum,notiz,modus) {
     try {
       // Indiware 7 kennzeichnet diese Exporte als ISO-8859-1.
       // Aus den Original-HTML-Dateien wird nur die Unterrichtstabelle übernommen.
       const antwort=await fetch(encodeURI(datei)+'?stand='+Date.now(),{cache:'no-store'});
-      if(antwort.status===404){zeigeFehlendenPlan(ziel,notiz,modus);return;}
+      if(antwort.status===404){aktualisierungErkennen(datum,'fehlt');zeigeFehlendenPlan(ziel,notiz,modus);return;}
       if(!antwort.ok)throw new Error('Serverantwort HTTP '+antwort.status);
       const bytes=await antwort.arrayBuffer();
       const html=new TextDecoder('windows-1252').decode(bytes);
@@ -255,6 +306,7 @@
       scrollendeTabelle(ziel,inhalt);
       const stand=doc.querySelector('.vpdatum')?.textContent.trim()||'ohne Zeitangabe';
       $(notiz).textContent='Planstand: '+stand+' · '+tbody.children.length+' Änderungen';
+      aktualisierungErkennen(datum,textFingerabdruck(html));
     } catch(e) {
       console.warn('Indiware-Plan konnte nicht geladen werden:',datei,e);
       zeigeFehlendenPlan(ziel,notiz,'fehler',e.message);
@@ -280,9 +332,11 @@
     mitteilungenLaden();
     const erster=unterrichtstagAb(heute);
     $('dateToday').textContent=datumFormat.format(erster);
+    $('dateToday').dataset.iso=isoLocal(erster);
     $('dateToday').previousElementSibling.textContent=isoLocal(erster)===isoLocal(heute)?'HEUTE':'NÄCHSTER UNTERRICHTSTAG';
     const next=naechsterUnterrichtstag(erster);
     $('dateNext').textContent=datumFormat.format(next);
+    $('dateNext').dataset.iso=isoLocal(next);
     if(EINSTELLUNGEN.anzeige==='indiware') {
       const ersterIstHeute=isoLocal(erster)===isoLocal(heute);
       zeigeIndiware('todayArea',dateinameFuer(erster),erster,'todayNote',ersterIstHeute?'heute':'zukunft');
@@ -292,6 +346,7 @@
       $('todayNote').textContent='DEMONSTRATION – keine echten Plandaten';
       $('nextNote').textContent='DEMONSTRATION – keine echten Plandaten';
     }
+    aktualisierungsanzeigen();
     uhr();setInterval(uhr,10000);
     if(EINSTELLUNGEN.neuladenMinuten>0) setInterval(()=>location.reload(),EINSTELLUNGEN.neuladenMinuten*60000);
   }
